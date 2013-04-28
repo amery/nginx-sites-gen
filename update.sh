@@ -21,6 +21,8 @@ for D; do
 
 	if "$GEN" "$D" > "$C~"; then
 		mv "$C~" "$C"
+		sed -i -e 's|[ \t]\+$||' -e 's|^    \t|\t|' "$C"
+		sed -i -e :a -e '/^\n*$/{$d;N;};/\n$/ba' "$C"
 	else
 		rm -f "$C~" "$C.orig"
 		continue
