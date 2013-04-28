@@ -4,7 +4,9 @@ GEN="$GENDIR/gen_nginx_conf.sh"
 
 export LANG=C LANGUAGE=C LC_ALL=C
 updated=
-for D in */; do
+
+[ $# -gt 0 ] || set -- */
+for D; do
 	[ -d "$D" ] || continue
 	D="${D%/}"
 	C="$D.conf"
