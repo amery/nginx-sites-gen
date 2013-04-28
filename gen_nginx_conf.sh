@@ -7,7 +7,15 @@ err() {
 gen_config_rules() {
 	local domain="$1" x=
 	local name= action= target=
-	local proto=http port=80
+	local proto="${2:-http}" port="$3"
+
+	if [ -z "$port" ]; then
+		case "$proto" in
+		http) port=80 ;;
+		https) port=443 ;;
+		*) err "$proto: can't guess port"; return ;;
+		esac
+	fi
 
 	while read name action target; do
 		# fill the blanks
@@ -31,6 +39,15 @@ gen_config_rules() {
 		    server_name $name;
 
 		EOT
+
+		case "$proto" in
+		https)
+			cat <<-EOT
+			    ssl on;
+
+			EOT
+			;;
+		esac
 
 		case "$action" in
 		"->"|"=>")	# redirect
@@ -84,13 +101,20 @@ gen_config_rules() {
 	done
 }
 
+gen_config_rules_from_file() {
+	local f="$1"
+	shift
+
+	if [ -s "$f" ]; then
+		sed -e '/^[ \t]*$/d' -e '/^[ \t]*#/d' "$f" |
+			gen_config_rules "$@"
+	fi
+}
+
 gen_config() {
 	local domain="$1" x=
 
-	if [ -f sites.txt ]; then
-		sed -e '/^[ \t]*$/d' -e '/^[ \t]*#/d' \
-			sites.txt | gen_config_rules "$domain"
-	else
+	if [ ! -s sites.txt -a ! -s http.txt -a ! -s https.txt ]; then
 		if [ -d www/ ]; then
 			echo ". -> www" | gen_config_rules "$domain"
 		fi
@@ -101,6 +125,10 @@ gen_config() {
 
 			echo "$x"
 		done | gen_config_rules "$domain"
+	else
+		gen_config_rules_from_file sites.txt "$domain"
+		gen_config_rules_from_file http.txt "$domain"
+		gen_config_rules_from_file https.txt "$domain" https 443
 	fi
 }
 
