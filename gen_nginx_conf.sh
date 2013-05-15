@@ -8,6 +8,7 @@ gen_config_rules() {
 	local domain="$1" x=
 	local name= action= target=
 	local proto="${2:-http}" port="$3"
+	local server_name=
 
 	if [ -z "$port" ]; then
 		case "$proto" in
@@ -31,12 +32,22 @@ gen_config_rules() {
 			name="$name.$domain"
 		fi
 
+		server_name="$name"
+		if [ -s "$target.server_name" ]; then
+			x=$(sed -e "s|@D@|$domain|g" -e "s|@NAME@|$name|g" "$target.server_name" |
+				tr '\n\t' '  ' |
+				sed -e 's|^ *||g' -e 's| *$||' -e 's| \+| |g')
+			if [ -n "$x" ]; then
+				server_name="$x"
+			fi
+		fi
+
 		cat <<-EOT
 		# $proto://$name
 		#
 		server {
 		    listen [::]:$port;
-		    server_name $name;
+		    server_name $server_name;
 
 		EOT
 
