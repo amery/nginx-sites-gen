@@ -8,7 +8,7 @@ gen_config_rules() {
 	local domain="$1" x=
 	local name= action= target=
 	local proto="${2:-http}" port="$3"
-	local server_name=
+	local server_name= server_name_file=
 
 	if [ -z "$port" ]; then
 		case "$proto" in
@@ -27,14 +27,20 @@ gen_config_rules() {
 		if [ "$name" = '.' ]; then
 			logname="$domain"
 			name="$domain"
+			server_name_file=".server_name"
 		else
+			if [ "$action" = "=" ]; then
+				server_name_file="$target.server_name"
+			else
+				server_name_file="$name.server_name"
+			fi
 			logname="$domain-$name"
 			name="$name.$domain"
 		fi
 
 		server_name="$name"
-		if [ -s "$target.server_name" ]; then
-			x=$(sed -e "s|@D@|$domain|g" -e "s|@NAME@|$name|g" "$target.server_name" |
+		if [ -s "$server_name_file" ]; then
+			x=$(sed -e "s|@D@|$domain|g" -e "s|@NAME@|$name|g" "$server_name_file" |
 				tr '\n\t' '  ' |
 				sed -e 's|^ *||g' -e 's| *$||' -e 's| \+| |g')
 			if [ -n "$x" ]; then
