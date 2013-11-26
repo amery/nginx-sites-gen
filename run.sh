@@ -14,6 +14,8 @@ F=
 rm -f "$S~"
 for d in */*/; do
 	[ -d "$d" ] || continue
+	[ ! -e "$d/.skip" ] || continue
+
 	d="${d%/}"
 	c="$PWD/$d.conf"
 	[ -s "$c" ] || touch "$c"
