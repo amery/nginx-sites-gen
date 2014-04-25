@@ -7,7 +7,7 @@ err() {
 gen_config_rules() {
 	local domain="$1" x=
 	local name= action= target=
-	local proto="${2:-http}" port="$3"
+	local proto="${2:-http}" port="$3" ssl=
 	local server_name= server_name_file=
 
 	if [ -z "$port" ]; then
@@ -48,23 +48,23 @@ gen_config_rules() {
 			fi
 		fi
 
+		case "$proto" in
+		https)
+			ssl=" ssl"
+			;;
+		*)
+			ssl=
+			;;
+		esac
+
 		cat <<-EOT
 		# $proto://$name
 		#
 		server {
-		    listen [::]:$port;
+		    listen [::]:$port$ssl;
 		    server_name $server_name;
 
 		EOT
-
-		case "$proto" in
-		https)
-			cat <<-EOT
-			    ssl on;
-
-			EOT
-			;;
-		esac
 
 		case "$action" in
 		"->"|"=>")	# redirect
