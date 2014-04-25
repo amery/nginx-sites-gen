@@ -4,10 +4,86 @@ err() {
 	echo "$*" >&2
 }
 
+replace() {
+	sed	-e "s|@D@|$domain|g" \
+		-e "s|@NAME@|$name|g" \
+		-e "s|@ROOT@|$x|g" \
+		"$@"
+}
+
+indent() {
+	sed -e 's/^/\t/' -e 's/^[ \t]\+$//' "$@"
+}
+
+gen_server_config_body() {
+	local ssl=
+
+	case "$proto" in
+	https)
+		ssl=yes
+		;;
+	esac
+
+	cat <<-EOT
+	listen [::]:$port${ssl:+ ssl};
+	server_name $server_name;
+
+	EOT
+
+	if [ -n "$ssl" -a -s "$file_base.ssl" ]; then
+		replace "$file_base.ssl"
+		echo
+	fi
+
+	case "$action" in
+	"->"|"=>")	# redirect
+		case "$target" in
+		.)	# to domain
+			target="$proto://$domain"
+			;;
+		*:*)	# URI
+			;;
+		*.*)	# host
+			target="$proto://$target"
+			;;
+		*)	# name
+			target="$proto://$target.$domain"
+			;;
+		esac
+
+		case "$action" in
+		"->") # soft
+			echo "rewrite ^ $target\$request_uri permanent;"
+			;;
+		"=>") # hard
+			echo "rewrite ^ $target? permanent;"
+			;;
+		esac
+		;;
+	=)	# root
+
+		cat <<-EOT
+		error_log logs/$logname.err info;
+		access_log logs/$logname.log;
+
+		EOT
+
+		x=$(cd "$target"; pwd -P)
+		if [ -s "$target.conf" ]; then
+			replace "$target.conf"
+		else
+			cat <<-EOT
+			root $x;
+			index index.html;
+			EOT
+		fi
+	esac
+}
+
 gen_config_rules() {
 	local domain="$1" x=
 	local name= action= target=
-	local proto="${2:-http}" port="$3" ssl=
+	local proto="${2:-http}" port="$3"
 	local file_base=
 	local server_name=
 
@@ -41,77 +117,21 @@ gen_config_rules() {
 
 		server_name="$name"
 		if [ -s "$file_base.server_name" ]; then
-			x=$(sed -e "s|@D@|$domain|g" -e "s|@NAME@|$name|g" "$file_base.server_name" |
-				tr '\n\t' '  ' |
+			x=$(replace "$file_base.server_name" | tr '\n\t' '  ' |
 				sed -e 's|^ *||g' -e 's| *$||' -e 's| \+| |g')
 			if [ -n "$x" ]; then
 				server_name="$x"
 			fi
 		fi
 
-		case "$proto" in
-		https)
-			ssl=" ssl"
-			;;
-		*)
-			ssl=
-			;;
-		esac
-
 		cat <<-EOT
 		# $proto://$name
 		#
 		server {
-		    listen [::]:$port$ssl;
-		    server_name $server_name;
-
 		EOT
 
-		case "$action" in
-		"->"|"=>")	# redirect
-			case "$target" in
-			.)	# to domain
-				target="$proto://$domain"
-				;;
-			*:*)	# URI
-				;;
-			*.*)	# host
-				target="$proto://$target"
-				;;
-			*)	# name
-				target="$proto://$target.$domain"
-				;;
-			esac
+		gen_server_config_body | indent
 
-			case "$action" in
-			"->") # soft
-				echo "    rewrite ^ $target\$request_uri permanent;"
-				;;
-			"=>") # hard
-				echo "    rewrite ^ $target? permanent;"
-				;;
-			esac
-			;;
-		=)	# root
-
-			cat <<-EOT
-			    error_log logs/$logname.err info;
-			    access_log logs/$logname.log;
-
-			EOT
-
-			x=$(cd "$target"; pwd -P)
-			if [ -s "$target.conf" ]; then
-				sed	-e 's/^/    /' \
-					-e "s,@ROOT@,$x,g" \
-					"$target.conf"
-			else
-				cat <<-EOT
-				    root $x;
-				    index index.html;
-				EOT
-			fi
-		esac
 		cat <<-EOT
 		}
 
@@ -156,5 +176,3 @@ for x; do
 	gen_config "${PWD##*/}"
 	cd - > /dev/null
 done
-
-
