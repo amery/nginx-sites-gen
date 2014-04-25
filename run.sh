@@ -8,6 +8,8 @@ die() {
 set -e
 ARG0=$(readlink -f "$0")
 [ -x "$ARG0" ] || die "$0: not found"
+cd "$(dirname "$0")"
+
 U="${ARG0%/*}/update.sh"
 S="$PWD/sites.conf"
 F=
