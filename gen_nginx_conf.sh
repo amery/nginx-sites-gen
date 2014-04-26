@@ -139,20 +139,29 @@ gen_config_rules() {
 	done
 }
 
-gen_config_rules_from_file() {
-	local f="$1"
-	shift
-
-	if [ -s "$f" ]; then
-		sed -e '/^[ \t]*$/d' -e '/^[ \t]*#/d' "$f" |
-			gen_config_rules "$@"
-	fi
-}
-
 gen_config() {
 	local domain="$1" x=
+	local f= found= mode=
 
-	if [ ! -s sites.txt -a ! -s http.txt -a ! -s https.txt ]; then
+	for f in sites.txt http.txt https.txt; do
+		if [ -s "$f" ]; then
+			case "$f" in
+			https.txt)
+				mode=https
+				;;
+			*)
+				mode=
+				;;
+			esac
+
+			sed -e '/^[ \t]*$/d' -e '/^[ \t]*#/d' "$f" |
+				gen_config_rules "$domain" $mode
+
+			found=yes
+		fi
+	done
+
+	if [ -z "$found" ]; then
 		if [ -d www/ ]; then
 			echo ". -> www" | gen_config_rules "$domain"
 		fi
@@ -163,10 +172,6 @@ gen_config() {
 
 			echo "$x"
 		done | gen_config_rules "$domain"
-	else
-		gen_config_rules_from_file sites.txt "$domain"
-		gen_config_rules_from_file http.txt "$domain"
-		gen_config_rules_from_file https.txt "$domain" https 443
 	fi
 }
 
