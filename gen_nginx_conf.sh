@@ -36,9 +36,14 @@ gen_server_config_body() {
 
 	EOT
 
-	if [ -n "$ssl" -a -s "$file_base.ssl" ]; then
-		replace "$file_base.ssl"
-		echo
+	if [ -n "$ssl" ]; then
+		if [ -s "$file_base.ssl" ]; then
+			replace "$file_base.ssl"
+			echo
+		elif [ -s '*.ssl' ]; then
+			replace '*.ssl'
+			echo
+		fi
 	fi
 
 	case "$action" in
