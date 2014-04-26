@@ -7,7 +7,8 @@ err() {
 replace() {
 	sed	-e "s|@D@|$domain|g" \
 		-e "s|@NAME@|$name|g" \
-		-e "s|@ROOT@|$x|g" \
+		-e "s|@ROOT@|$root|g" \
+		-e "s|@DOMAINROOT@|$domainroot|g" \
 		"$@"
 }
 
@@ -17,6 +18,11 @@ indent() {
 
 gen_server_config_body() {
 	local ssl=
+	local root=
+
+	if [ -d "$target/" ]; then
+		root=$(cd "$target" && pwd -P)
+	fi
 
 	case "$proto" in
 	https)
@@ -68,12 +74,11 @@ gen_server_config_body() {
 
 		EOT
 
-		x=$(cd "$target"; pwd -P)
 		if [ -s "$target.conf" ]; then
 			replace "$target.conf"
 		else
 			cat <<-EOT
-			root $x;
+			root $root;
 			index index.html;
 			EOT
 		fi
@@ -140,22 +145,18 @@ gen_config_rules() {
 }
 
 gen_config() {
-	local domain="$1" x=
-	local f= found= mode=
+	local domain="${PWD##*/}" domainroot="$PWD"
+	local x= f= found= proto=
 
 	for f in sites.txt http.txt https.txt; do
 		if [ -s "$f" ]; then
 			case "$f" in
-			https.txt)
-				mode=https
-				;;
-			*)
-				mode=
-				;;
+			https.txt)	proto=https ;;
+			*)		proto= ;;
 			esac
 
 			sed -e '/^[ \t]*$/d' -e '/^[ \t]*#/d' "$f" |
-				gen_config_rules "$domain" $mode
+				gen_config_rules "$domain" $proto
 
 			found=yes
 		fi
@@ -176,8 +177,5 @@ gen_config() {
 }
 
 for x; do
-	cd "$x" 2> /dev/null || continue
-
-	gen_config "${PWD##*/}"
-	cd - > /dev/null
+	(cd "$x" && gen_config)
 done
