@@ -18,13 +18,15 @@ indent() {
 
 gen_server_config_body() {
 	local proto= port=
-	local ssl=
-	local root=
+	local ssl= root=
+	local x=
 
 	if [ -d "$target/" ]; then
 		root=$(cd "$target" && pwd -P)
 	fi
 
+	# listen
+	#
 	for x; do
 		proto="${x%:*}" port="${x##*:}"
 		[ "$port" != "$proto" ] || port=
@@ -40,11 +42,21 @@ gen_server_config_body() {
 		esac
 	done
 
+	# server_name
+	#
+	if [ -s "$file_base.server_name" ]; then
+		x=$(replace "$file_base.server_name" | tr '\n\t' '  ' |
+			sed -e 's|^ *||g' -e 's| *$||' -e 's| \+| |g')
+	else
+		x=
+	fi
 	cat <<-EOT
-	server_name $server_name;
+	server_name ${x:-$name};
 
 	EOT
 
+	# SNI
+	#
 	if [ -n "$ssl" ]; then
 		if [ -s "$file_base.ssl" ]; then
 			replace "$file_base.ssl"
@@ -104,16 +116,17 @@ gen_config_rules() {
 	local name= action= target=
 	local proto=
 	local file_base=
-	local server_name=
 
 	[ $# -gt 0 ] || set -- http
 
 	while read name action target; do
 		# fill the blanks
-		[ -n "$action" ] || action="="
-		[ -n "$target" ] || target="$name"
+		#
+		: ${action:==}
+		: ${target:=$name}
 
 		# canonicalize name
+		#
 		if [ "$name" = '.' ]; then
 			logname="$domain"
 			name="$domain"
@@ -126,15 +139,6 @@ gen_config_rules() {
 			fi
 			logname="$domain-$name"
 			name="$name.$domain"
-		fi
-
-		server_name="$name"
-		if [ -s "$file_base.server_name" ]; then
-			x=$(replace "$file_base.server_name" | tr '\n\t' '  ' |
-				sed -e 's|^ *||g' -e 's| *$||' -e 's| \+| |g')
-			if [ -n "$x" ]; then
-				server_name="$x"
-			fi
 		fi
 
 		for x; do
