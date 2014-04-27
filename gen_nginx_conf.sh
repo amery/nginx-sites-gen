@@ -17,6 +17,7 @@ indent() {
 }
 
 gen_server_config_body() {
+	local proto= port=
 	local ssl=
 	local root=
 
@@ -24,14 +25,22 @@ gen_server_config_body() {
 		root=$(cd "$target" && pwd -P)
 	fi
 
-	case "$proto" in
-	https)
-		ssl=yes
-		;;
-	esac
+	for x; do
+		proto="${x%:*}" port="${x##*:}"
+		[ "$port" != "$proto" ] || port=
+
+		case "$proto" in
+		http)
+			echo "listen [::]:${port:-80};"
+			;;
+		https)
+			echo "listen [::]:${port:-443} ssl;"
+			ssl=yes
+			;;
+		esac
+	done
 
 	cat <<-EOT
-	listen [::]:$port${ssl:+ ssl};
 	server_name $server_name;
 
 	EOT
@@ -50,15 +59,15 @@ gen_server_config_body() {
 	"->"|"=>")	# redirect
 		case "$target" in
 		.)	# to domain
-			target="$proto://$domain"
+			target="\$scheme://$domain"
 			;;
 		*:*)	# URI
 			;;
 		*.*)	# host
-			target="$proto://$target"
+			target="\$scheme://$target"
 			;;
 		*)	# name
-			target="$proto://$target.$domain"
+			target="\$scheme://$target.$domain"
 			;;
 		esac
 
@@ -91,19 +100,13 @@ gen_server_config_body() {
 }
 
 gen_config_rules() {
-	local domain="$1" x=
+	local x=
 	local name= action= target=
-	local proto="${2:-http}" port="$3"
+	local proto=
 	local file_base=
 	local server_name=
 
-	if [ -z "$port" ]; then
-		case "$proto" in
-		http) port=80 ;;
-		https) port=443 ;;
-		*) err "$proto: can't guess port"; return ;;
-		esac
-	fi
+	[ $# -gt 0 ] || set -- http
 
 	while read name action target; do
 		# fill the blanks
@@ -134,13 +137,16 @@ gen_config_rules() {
 			fi
 		fi
 
+		for x; do
+			proto="${x%:*}"
+			echo "# $proto://$name"
+		done
 		cat <<-EOT
-		# $proto://$name
 		#
 		server {
 		EOT
 
-		gen_server_config_body | indent
+		gen_server_config_body "$@" | indent
 
 		cat <<-EOT
 		}
@@ -149,27 +155,31 @@ gen_config_rules() {
 	done
 }
 
+gen_config_rules_file() {
+	local f="$1"
+	shift
+
+	[ -s "$f" ] || return 1
+
+	sed -e '/^[ \t]*$/d' -e '/^[ \t]*#/d' "$f" |
+		gen_config_rules "$@"
+}
+
 gen_config() {
 	local domain="${PWD##*/}" domainroot="$PWD"
-	local x= f= found= proto=
+	local x= found=
 
-	for f in sites.txt http.txt https.txt; do
-		if [ -s "$f" ]; then
-			case "$f" in
-			https.txt)	proto=https ;;
-			*)		proto= ;;
-			esac
-
-			sed -e '/^[ \t]*$/d' -e '/^[ \t]*#/d' "$f" |
-				gen_config_rules "$domain" $proto
-
-			found=yes
-		fi
-	done
+	if [ -e sites.txt ]; then
+		# legacy
+		gen_config_rules_file sites.txt http && found=yes
+	else
+		gen_config_rules_file http.txt http && found=yes
+		gen_config_rules_file https.txt https && found=yes
+	fi
 
 	if [ -z "$found" ]; then
 		if [ -d www/ ]; then
-			echo ". -> www" | gen_config_rules "$domain"
+			echo ". -> www" | gen_config_rules http
 		fi
 
 		for x in */; do
@@ -177,7 +187,7 @@ gen_config() {
 			x="${x%/}"
 
 			echo "$x"
-		done | gen_config_rules "$domain"
+		done | gen_config_rules http
 	fi
 }
 
