@@ -172,9 +172,14 @@ gen_config() {
 	if [ -e sites.txt ]; then
 		# legacy
 		gen_config_rules_file sites.txt http && found=yes
-	else
+	elif [ -e https.txt ]; then
+		# legacy split
 		gen_config_rules_file http.txt http && found=yes
 		gen_config_rules_file https.txt https && found=yes
+	else
+		gen_config_rules_file http.txt http https && found=yes
+		gen_config_rules_file http-only.txt http && found=yes
+		gen_config_rules_file https-only.txt https && found=yes
 	fi
 
 	if [ -z "$found" ]; then
