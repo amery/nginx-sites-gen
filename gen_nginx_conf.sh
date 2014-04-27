@@ -31,15 +31,24 @@ gen_server_config_body() {
 		proto="${x%:*}" port="${x##*:}"
 		[ "$port" != "$proto" ] || port=
 
+		if [ "$DEFAULT_SERVER" = "$name" ]; then
+			x=" default_server ipv6only=off"
+		else
+			x=
+		fi
+
 		case "$proto" in
 		http)
-			echo "listen [::]:${port:-80};"
+			: ${port:=80}
 			;;
 		https)
-			echo "listen [::]:${port:-443} ssl;"
+			: ${port:=443}
+			x="${x} ssl"
 			ssl=yes
 			;;
 		esac
+
+		echo "listen [::]:$port$x;"
 	done
 
 	# server_name

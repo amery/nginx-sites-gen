@@ -12,6 +12,13 @@ cd "$(dirname "$0")"
 
 U="${ARG0%/*}/update.sh"
 S="$PWD/sites.conf"
+D="$PWD/default_server"
+if [ -s "$D" ]; then
+	read D < "$D"
+else
+	D=
+fi
+
 F=
 rm -f "$S~"
 for d in */*/; do
@@ -28,7 +35,7 @@ for d in */*/; do
 	fi
 	echo "$l" >> "$S~"
 
-	$U "$d/"
+	DEFAULT_SERVER="$D" $U "$d/"
 done
 
 echo "====="
