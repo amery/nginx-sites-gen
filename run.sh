@@ -23,8 +23,19 @@ else
 fi
 
 rm -f "$S~"
-ls -1d */*/ 2> /dev/null | sed -e 's|/\+$||' | sort |
-while read d; do
+if [ -n "$D" ]; then
+	dd=$(ls -1d */$D/ */${D#*.}/ 2> /dev/null | head -n1)
+else
+	dd=
+fi
+
+if [ -d "$dd" ]; then
+	echo "$dd"
+	dd=$(echo "$dd" | sed -e 's|\.|\\.|g')
+	ls -1d */*/ 2> /dev/null | grep -v -e "^$dd$" | sort
+else
+	ls -1d */*/ 2> /dev/null | sort
+fi | sed -e 's|/\+$||' | while read d; do
 	[ ! -e "$d/.skip" ] || continue
 
 	c="$PWD/$d.conf"
