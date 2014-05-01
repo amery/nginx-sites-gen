@@ -33,11 +33,13 @@
 LASTUMASK=`umask`
 umask 077
 
+BASE=$(pwd)
+
 # OpenSSL for HPUX needs a random file
-RANDOMFILE=$HOME/.rnd
+RANDOMFILE=${BASE}/.rnd
 
 # create a config file for openssl
-CONFIG=`mktemp -q /tmp/openssl-conf.XXXXXXXX`
+CONFIG=`mktemp -q ${BASE}/openssl-conf.XXXXXXXX`
 if [ ! $? -eq 0 ]; then
     echo "Could not create temporary config file. exiting"
     exit 1
@@ -71,7 +73,7 @@ done
 
 cat <<EOF > $CONFIG
 # -------------- BEGIN custom openssl.cnf -----
- HOME                    = $HOME
+ HOME                    = $BASE
 EOF
 
 if [ "`uname -s`" = "HP-UX" ]; then
@@ -83,7 +85,7 @@ cat <<EOF >> $CONFIG
  [ new_oids ]
  [ req ]
  default_days            = 730            # how long to certify for
- default_keyfile         = $HOME/${HOST}_privatekey.pem
+ default_keyfile         = $BASE/${HOST}_privatekey.pem
  distinguished_name      = req_distinguished_name
  encrypt_key             = no
  string_mask = nombstr
@@ -108,14 +110,14 @@ fi
 echo "# -------------- END custom openssl.cnf -----" >> $CONFIG
 
 echo "Running OpenSSL..."
-openssl req -batch -config $CONFIG -newkey rsa:2048 -out $HOME/${HOST}_csr.pem
+openssl req -batch -config $CONFIG -newkey rsa:2048 -out $BASE/${HOST}_csr.pem
 echo "Copy the following Certificate Request and paste into CAcert website to obtain a Certificate."
 echo "When you receive your certificate, you 'should' name it something like ${HOST}_server.pem"
 echo
-cat $HOME/${HOST}_csr.pem
+cat $BASE/${HOST}_csr.pem
 echo
-echo The Certificate request is also available in $HOME/${HOST}_csr.pem
-echo The Private Key is stored in $HOME/${HOST}_privatekey.pem
+echo The Certificate request is also available in $BASE/${HOST}_csr.pem
+echo The Private Key is stored in $BASE/${HOST}_privatekey.pem
 echo
 
 rm $CONFIG
