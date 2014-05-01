@@ -12,6 +12,9 @@ cd "$(dirname "$0")"
 
 U="${ARG0%/*}/update.sh"
 S="$PWD/sites.conf"
+
+# default server
+#
 D="$PWD/default_server"
 if [ -s "$D" ]; then
 	read D < "$D"
@@ -19,13 +22,11 @@ else
 	D=
 fi
 
-F=
 rm -f "$S~"
-for d in */*/; do
-	[ -d "$d" ] || continue
+ls -1d */*/ 2> /dev/null | sed -e 's|/\+$||' | sort |
+while read d; do
 	[ ! -e "$d/.skip" ] || continue
 
-	d="${d%/}"
 	c="$PWD/$d.conf"
 	[ -s "$c" ] || touch "$c"
 
