@@ -169,12 +169,22 @@ gen_config_rules() {
 }
 
 gen_config_rules_file() {
-	local f="$1"
+	local f="$1" d=
 	shift
 
 	[ -s "$f" ] || return 1
 
-	sed -e '/^[ \t]*$/d' -e '/^[ \t]*#/d' "$f" |
+	if [ "$domain" = "$DEFAULT_SERVER" ]; then
+		d="^\.[ \t]"
+		grep "$d" "$f"
+		grep -v "$d" "$f"
+	elif [ "$domain" = "${DEFAULT_SERVER#*.}" ]; then
+		d="${DEFAULT_SERVER%%.*}"
+		grep -e "^$d$" -e "^$d[ \t]" "$f"
+		grep -v -e "^$d$" -e "^$d[ \t]" "$f"
+	else
+		cat "$f"
+	fi | sed -e '/^[ \t]*$/d' -e '/^[ \t]*#/d' |
 		gen_config_rules "$@"
 }
 
