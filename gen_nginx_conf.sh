@@ -1,5 +1,7 @@
 #!/bin/sh
 
+LETSENCRYPT=/etc/letsencrypt
+
 err() {
 	echo "$*" >&2
 }
@@ -70,6 +72,11 @@ gen_server_config_body() {
 		if [ -s "$file_base.ssl" ]; then
 			replace "$file_base.ssl"
 			echo
+		elif [ -s "$LETSENCRYPT/live/$name/privkey.pem" ]; then
+			cat <<-EOT
+			ssl_certificate $LETSENCRYPT/live/$name/fullchain.pem;
+			ssl_certificate_key $LETSENCRYPT/live/$name/privkey.pem;
+			EOT
 		elif [ -s '*.ssl' ]; then
 			replace '*.ssl'
 			echo
