@@ -14,6 +14,8 @@ replace() {
 		"$@"
 }
 
+TAB="$(printf '\t')"
+
 indent() {
 	sed -e 's/^/\t/' -e 's/^[ \t]\+$//' "$@"
 }
@@ -76,6 +78,7 @@ gen_server_config_body() {
 			cat <<-EOT
 			ssl_certificate $LETSENCRYPT/live/$name/fullchain.pem;
 			ssl_certificate_key $LETSENCRYPT/live/$name/privkey.pem;
+
 			EOT
 		elif [ -s '*.ssl' ]; then
 			replace '*.ssl'
@@ -86,6 +89,10 @@ gen_server_config_body() {
 	case "$action" in
 	"->"|"=>")	# redirect
 		case "$target" in
+		https)
+			# http -> https special case
+			target="https://$name"
+			;;
 		.)	# to domain
 			target="\$scheme://$domain"
 			;;
@@ -101,10 +108,18 @@ gen_server_config_body() {
 
 		case "$action" in
 		"->") # soft
-			echo "rewrite ^ $target\$request_uri permanent;"
+			cat <<-EOT
+			location / {
+			${TAB}rewrite ^ $target\$request_uri permanent;
+			}
+			EOT
 			;;
 		"=>") # hard
-			echo "rewrite ^ $target? permanent;"
+			cat <<-EOT
+			location / {
+			${TAB}rewrite ^ $target? permanent;
+			}
+			EOT
 			;;
 		esac
 		;;
