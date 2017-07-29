@@ -27,6 +27,8 @@ gen_server_config_body() {
 
 	if [ -d "$target/" ]; then
 		root=$(cd "$target" && pwd -P)
+	elif [ -d "$file_base/" ]; then
+		root=$(cd "$file_base/" && pwd -P)
 	fi
 
 	# listen
@@ -92,6 +94,17 @@ gen_server_config_body() {
 		https)
 			# http -> https special case
 			target="https://$name"
+
+			if [ -n "$root" -a "$root" != "/" -a -d "$root" ]; then
+				# letsencrypt exception
+				cat <<-EOT
+				location /.well-known/acme-challenge {
+				${TAB}root $root;
+				}
+
+				EOT
+			fi
+
 			;;
 		.)	# to domain
 			target="\$scheme://$domain"
