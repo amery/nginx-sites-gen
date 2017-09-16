@@ -25,7 +25,10 @@ gen_server_config_body() {
 	local ssl= root=
 	local x=
 
-	if [ -d "$target/" ]; then
+	if [ "${target#https:}" != "$target" -a -d "${target#https:}/" ]; then
+		root=$(cd "${target#https:}" && pwd -P)
+		target=https
+	elif [ "$target" != "." -a -d "$target/" ]; then
 		root=$(cd "$target" && pwd -P)
 	elif [ -d "$file_base/" ]; then
 		root=$(cd "$file_base/" && pwd -P)
@@ -146,6 +149,8 @@ gen_server_config_body() {
 
 		if [ -s "$target.conf" ]; then
 			replace "$target.conf"
+		elif [ -s "${target%%/*}.conf" ]; then
+			replace "${target%%/*}.conf"
 		else
 			cat <<-EOT
 			root $root;
