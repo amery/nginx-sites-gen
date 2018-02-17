@@ -71,6 +71,7 @@ gen_server_config_body() {
 	cat <<-EOT
 	server_name ${x:-$name};
 
+	server_tokens off;
 	EOT
 
 	# SNI
