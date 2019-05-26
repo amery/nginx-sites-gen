@@ -97,7 +97,7 @@ gen_server_config_body() {
 		case "$target" in
 		https)
 			# http -> https special case
-			target="https://$name"
+			target="https://\$host"
 
 			if [ -n "$root" -a "$root" != "/" -a -d "$root" ]; then
 				# letsencrypt exception
