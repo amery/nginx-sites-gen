@@ -86,6 +86,12 @@ gen_server_config_body() {
 			ssl_certificate_key $LETSENCRYPT/live/$name/privkey.pem;
 
 			EOT
+		elif [ -s "$LETSENCRYPT/live/$domain/privkey.pem" ]; then
+			cat <<-EOT
+			ssl_certificate $LETSENCRYPT/live/$domain/fullchain.pem;
+			ssl_certificate_key $LETSENCRYPT/live/$domain/privkey.pem;
+
+			EOT
 		elif [ -s '*.ssl' ]; then
 			replace '*.ssl'
 			echo
