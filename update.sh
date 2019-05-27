@@ -28,7 +28,7 @@ for D; do
 		continue
 	fi
 
-	if diff -u "$C.orig" "$C" | colordiff; then
+	if diff -u "$C.orig" "$C" | pygmentize -l diff; then
 		if nginx -t; then
 			rm -f "$C.orig"
 			updated=1
