@@ -197,6 +197,17 @@ gen_config_rules() {
 			name="$name.$domain"
 		fi
 
+		if [ -s "$file_base.upstream" ]; then
+			cat <<-EOT
+			upstream $name {
+			EOT
+			replace "$file_base.upstream" | indent
+			cat <<-EOT
+			}
+
+			EOT
+		fi
+
 		for x; do
 			proto="${x%:*}"
 			echo "# $proto://$name"
