@@ -29,13 +29,13 @@ else
 	D=
 fi
 
-rm -f "$S~"
 if [ -n "$D" ]; then
 	dd=$(ls -1d */$D/ */${D#*.}/ 2> /dev/null | head -n1)
 else
 	dd=
 fi
 
+cat /dev/null > "$S~"
 if [ -d "$dd" ]; then
 	echo "$dd"
 	dd=$(echo "$dd" | sed -e 's|\.|\\.|g')
