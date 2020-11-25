@@ -7,8 +7,15 @@ die() {
 
 set -e
 ARG0=$(readlink -f "$0")
-[ -x "$ARG0" ] || die "$0: not found"
-cd "$(dirname "$0")"
+BASEDIR="$(dirname "$0")"
+
+cd "$BASEDIR"
+
+if ! NGINX="$(which nginx)"; then
+	die "nginx not found"
+elif [ 0 != "$(id -u)" ]; then
+	NGINX="sudo $NGINX"
+fi
 
 U="${ARG0%/*}/update.sh"
 S="$PWD/sites.conf"
@@ -47,9 +54,9 @@ fi | sed -e 's|/\+$||' | while read d; do
 	fi
 	echo "$l" >> "$S~"
 
-	DEFAULT_SERVER="$D" $U "$d/"
+	NGINX="$NGINX" DEFAULT_SERVER="$D" $U "$d/"
 done
 
 echo "====="
 mv "$S~" "$S"
-nginx -t && nginx -s reload
+$NGINX -t && $NGINX -s reload

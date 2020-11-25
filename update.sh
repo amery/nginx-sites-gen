@@ -29,7 +29,7 @@ for D; do
 	fi
 
 	if diff -u "$C.orig" "$C" | pygmentize -l diff; then
-		if nginx -t; then
+		if ${NGINX:-nginx} -t; then
 			rm -f "$C.orig"
 			updated=1
 		else
@@ -43,4 +43,4 @@ for D; do
 	fi
 done
 
-[ -z "$updated" ] || nginx -s reload
+[ -z "$updated" ] || ${NGINX:-nginx} -s reload
