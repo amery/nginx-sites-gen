@@ -105,13 +105,28 @@ gen_server_config_body() {
 			# http -> https special case
 			target="https://\$host"
 
-			if [ -n "$root" -a "$root" != "/" -a -d "$root" ]; then
+			if [ -s "$file_base.acme" ]; then
+				read acme < "$file_base.acme"
+			else
+				acme=
+			fi
+
+			if [ -n "$acme" ]; then
+				# letsencrypt via acme.sh exception
+				cat <<-EOT
+
+				location ~ ^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)$ {
+				${TAB}default_type text/plain;
+				${TAB}return 200 "$acme";
+				}
+				EOT
+			elif [ -n "$root" -a "$root" != "/" -a -d "$root" ]; then
 				# letsencrypt exception
 				cat <<-EOT
+
 				location /.well-known/acme-challenge {
 				${TAB}root $root;
 				}
-
 				EOT
 			fi
 
